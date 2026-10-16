@@ -1,4 +1,3 @@
-
 <?php
 
 use Illuminate\Database\Migrations\Migration;
@@ -9,18 +8,18 @@ return new class extends Migration
 {
     public function up(): void
     {
+        // On a fresh database, create_login_events_table already adds user_id
+        if (Schema::hasColumn('login_events', 'user_id')) {
+            return;
+        }
+
         Schema::table('login_events', function (Blueprint $table) {
-            $table->foreignId('user_id')
-                ->constrained('users')
-                ->cascadeOnDelete();
+            $table->foreignId('user_id')->constrained()->cascadeOnDelete();
         });
     }
 
     public function down(): void
     {
-        Schema::table('login_events', function (Blueprint $table) {
-            $table->dropForeign(['user_id']);
-            $table->dropColumn('user_id');
-        });
+        // The column belongs to create_login_events_table
     }
 };
