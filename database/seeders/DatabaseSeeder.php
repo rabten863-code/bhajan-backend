@@ -15,6 +15,8 @@ class BhajanSeeder extends Seeder
         Bhajan::where('title', 'like', 'Sample Bhajan%')->delete();
         Category::whereIn('slug', ['krishna', 'shiva', 'devi', 'god-angel-bani'])->delete();
 
+        $this->call(AdminSeeder::class);
+
         $names = [
             'ISHOR MAHIMA YUKTA BHAJAN',
             'GURU MAHIMA YUKTA BHAJAN',
