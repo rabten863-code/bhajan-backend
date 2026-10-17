@@ -20,6 +20,17 @@ Route::post('/rating', [FeedbackController::class, 'rate'])
 Route::post('/feedback', [FeedbackController::class, 'feedback'])
     ->middleware('throttle:5,1');
 
+Route::get('/debug-db', function () {
+    return [
+        'env_DB_CONNECTION'  => getenv('DB_CONNECTION'),
+        'env_DB_URL_present' => (bool) getenv('DB_URL'),
+        'config_default'     => config('database.default'),
+        'config_cached'      => app()->configurationIsCached(),
+        'driver'             => \Illuminate\Support\Facades\DB::connection()->getDriverName(),
+        'database'           => \Illuminate\Support\Facades\DB::connection()->getDatabaseName(),
+    ];
+});
+
 // Logged in
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/me', [AuthController::class, 'me']);
