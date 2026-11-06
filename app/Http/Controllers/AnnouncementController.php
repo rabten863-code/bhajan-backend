@@ -3,16 +3,14 @@
 namespace App\Http\Controllers;
 
 use App\Models\Announcement;
-use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 
 class AnnouncementController extends Controller
 {
-    // Devotees: list of messages with read flags
     public function index(Request $request)
     {
-        $since = $this->readSince($request->user());
+        $since = $this->since($request);
 
         $items = Announcement::latest()->limit(50)
             ->get(['id', 'title', 'message', 'type', 'event_at', 'created_at'])
@@ -23,36 +21,23 @@ class AnnouncementController extends Controller
                 'type'       => $a->type,
                 'event_at'   => $a->event_at?->toIso8601String(),
                 'created_at' => $a->created_at->toIso8601String(),
-                'is_read'    => $a->created_at->lte($since),
+                'is_read'    => $since ? $a->created_at->lte($since) : true,
             ]);
 
         return response()->json([
-            'unread_count' => Announcement::where('created_at', '>', $since)->count(),
+            'unread_count' => $since ? Announcement::where('created_at', '>', $since)->count() : 0,
             'items'        => $items,
         ]);
     }
 
-    // Lightweight count for the badge
     public function unreadCount(Request $request)
     {
+        $since = $this->since($request);
+
         return response()->json([
-            'unread_count' => Announcement::where('created_at', '>', $this->readSince($request->user()))->count(),
+            'unread_count' => $since ? Announcement::where('created_at', '>', $since)->count() : 0,
+            'latest_at'    => Announcement::latest()->first(['created_at'])?->created_at->toIso8601String(),
         ]);
-    }
-
-    // Marks everything up to the newest message the app displayed as read
-    public function markRead(Request $request)
-    {
-        $data = $request->validate(['up_to' => 'required|date']);
-
-        $upTo = Carbon::parse($data['up_to']);
-        $user = $request->user();
-
-        if (! $user->announcements_read_at || $upTo->gt($user->announcements_read_at)) {
-            $user->forceFill(['announcements_read_at' => $upTo])->save();
-        }
-
-        return response()->json(['ok' => true]);
     }
 
     // Admin only
@@ -72,8 +57,17 @@ class AnnouncementController extends Controller
         return response()->json($a, 201);
     }
 
-    private function readSince(User $user): Carbon
+    private function since(Request $request): ?Carbon
     {
-        return $user->announcements_read_at ?? $user->created_at;
+        $value = $request->query('since');
+        if (! $value) {
+            return null;
+        }
+
+        try {
+            return Carbon::parse($value);
+        } catch (\Throwable) {
+            return null;
+        }
     }
 }

@@ -11,6 +11,7 @@ use App\Models\Rating;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
+others: use App\Models\Device;
 
 class AdminDashboardController extends Controller
 {
@@ -18,13 +19,21 @@ class AdminDashboardController extends Controller
     {
         abort_unless($request->user()->isAdmin(), 403, 'Admins only');
 
-        $logins = LoginEvent::with('user:id,name,role')->latest()->limit(10)->get()
-            ->map(fn ($e) => [
-                'type'   => 'login',
-                'title'  => ($e->user?->name ?? 'A devotee') . ' logged in',
-                'detail' => $e->user?->role === 'admin' ? 'Admin' : null,
-                'at'     => $e->created_at->toIso8601String(),
-            ]);
+            $logins = LoginEvent::with('user:id,name,role')->latest()->limit(10)->get()
+                ->map(fn ($e) => [
+                    'type'   => 'login',
+                    'title'  => ($e->user?->name ?? 'Admin') . ' logged in',
+                    'detail' => $e->user?->role === 'admin' ? 'Admin' : null,
+                    'at'     => $e->created_at->toIso8601String(),
+                ])
+            ->concat(
+                Device::latest()->limit(10)->get()->map(fn ($d) => [
+                    'type'   => 'login',
+                    'title'  => 'New devotee joined',
+                    'detail' => null,
+                    'at'     => $d->created_at->toIso8601String(),
+                ])
+            );
 
         $ratings = Rating::latest()->limit(10)->get()
             ->map(fn ($r) => [
@@ -48,7 +57,7 @@ class AdminDashboardController extends Controller
             ->sortByDesc('at')->take(10)->values();
 
         return response()->json([
-            'total_users'      => User::where('role', 'devotee')->count(),
+            'total_users'      => Device::count(),
             'total_categories' => Category::count(),
             'total_bhajans'    => Bhajan::where('status', 'published')->count(),
             'announcement'     => Announcement::latest()->first(
