@@ -58,4 +58,30 @@ class BhajanController extends Controller
             'lyrics' => 'required|string|max:50000',
         ]);
     }
+
+        public function search(Request $request)
+    {
+        $q = trim((string) $request->query('q', ''));
+
+        if (mb_strlen($q) < 2) {
+            return response()->json([]);
+        }
+
+        // escape wildcard characters the user may type
+        $like = '%' . addcslashes($q, '\\%_') . '%';
+
+        return Bhajan::where('status', 'published')
+            ->where(fn ($w) => $w->where('title', 'ilike', $like)
+                                 ->orWhere('lyrics', 'ilike', $like))
+            ->with('categories:id,name')
+            ->orderByRaw('CASE WHEN title ILIKE ? THEN 0 ELSE 1 END', [$like])
+            ->orderBy('title')
+            ->limit(30)
+            ->get(['id', 'title'])
+            ->map(fn ($b) => [
+                'id'       => $b->id,
+                'title'    => $b->title,
+                'category' => $b->categories->first()?->name,
+            ]);
+    }
 }

@@ -20,6 +20,7 @@ Route::get('/categories/{category}/bhajans', [CategoryController::class, 'bhajan
 Route::get('/bhajans/{bhajan}', [BhajanController::class, 'show']);
 Route::get('/announcements', [AnnouncementController::class, 'index']);
 Route::get('/announcements/unread-count', [AnnouncementController::class, 'unreadCount']);
+Route::get('/search', [BhajanController::class, 'search'])->middleware('throttle:120,1');
 
 Route::post('/rating', [FeedbackController::class, 'rate'])->middleware('throttle:5,1');
 Route::post('/feedback', [FeedbackController::class, 'feedback'])->middleware('throttle:5,1');
